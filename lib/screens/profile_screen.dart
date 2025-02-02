@@ -4,6 +4,7 @@ import '../constant/entities.dart';
 import '../services/badge_service.dart';
 import '../theme/theme_provider.dart';
 import 'login_screen.dart';
+import '../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final BadgeService _badgeService = BadgeService();
+  final AuthService _authService = AuthService();
 
   // Temsili veriler aynı kalacak
   final Map<String, dynamic> _userData = {

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../widgets/bottom_navbar.dart';
+import '../services/auth_service.dart';
 import '../widgets/custom__textfield.dart';
 import 'forgot_password_screen.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,46 +11,39 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Form anahtarı ile form doğrulama kontrolü
+  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
-  // Şifre görünürlüğü kontrolü için değişken
-  bool _isPasswordVisible = false;
 
-  // Email ve şifre alanları için TextEditingController'lar
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  String _email = '';
+  String _password = '';
+  String _error = '';
+  bool _isLogin = true;
 
-  // "Beni Hatırla" seçeneği için değişken
-  bool _rememberMe = false;
-
-  String? _handleEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Email adresi gerekli';
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      try {
+        if (_isLogin) {
+          await _authService.signInWithEmailAndPassword(_email, _password);
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          await _authService.registerWithEmailAndPassword(_email, _password);
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } catch (e) {
+        setState(() {
+          _error = e.toString().contains('firebase_auth')
+              ? 'Email veya şifre hatalı'
+              : e.toString();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_error),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-
-    final regex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-    if (!regex.hasMatch(value)) {
-      return 'Geçerli bir email adresi girin';
-    }
-    return null;
-  }
-
-  String? _handlePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Şifre gerekli';
-    }
-    if (value.length < 6) {
-      return 'Şifre en az 6 karakter olmalı';
-    }
-    return null;
-  }
-
-  @override
-  void dispose() {
-    // Bellek yönetimi için controller'ları dispose ediyoruz
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override
@@ -125,33 +116,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       CustomTextField(
                         labelText: 'Email',
                         hintText: 'mail@example.com',
-                        controller: _emailController,
-                        validator: _handleEmail,
+                        controller: TextEditingController(text: _email),
+                        validator: (value) => value!.isEmpty
+                            ? 'Email alanı boş bırakılamaz'
+                            : null,
+                        onSaved: (value) => _email = value!,
                       ),
                       const SizedBox(height: 20),
                       // Şifre TextField
                       CustomTextField(
                         labelText: 'Şifre',
                         hintText: '••••••••',
-                        controller: _passwordController,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onBackground
-                                .withOpacity(0.6),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
-                          },
-                        ),
-                        obsureText: !_isPasswordVisible,
-                        validator: _handlePassword,
+                        controller: TextEditingController(text: _password),
+                        obsureText: true,
+                        validator: (value) => value!.length < 6
+                            ? 'Şifre en az 6 karakter olmalı'
+                            : null,
+                        onSaved: (value) => _password = value!,
                       ),
                       const SizedBox(height: 20),
                       // Beni Hatırla ve Şifremi Unuttum
@@ -161,10 +142,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           Row(
                             children: [
                               Checkbox(
-                                value: _rememberMe,
+                                value: _isLogin,
                                 onChanged: (value) {
                                   setState(() {
-                                    _rememberMe = value ?? false;
+                                    _isLogin = value ?? false;
+                                    _error = '';
                                   });
                                 },
                                 fillColor:
@@ -229,15 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 30),
                       // Giriş Yap Butonu
                       ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState?.validate() ?? false) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => BottomNavBar()),
-                            );
-                          }
-                        },
+                        onPressed: _submitForm,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               Theme.of(context).colorScheme.primary,
@@ -250,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           elevation: 0,
                         ),
                         child: Text(
-                          'Giriş Yap',
+                          _isLogin ? 'Giriş Yap' : 'Kayıt Ol',
                           style: Theme.of(context)
                               .textTheme
                               .bodyLarge
@@ -324,7 +298,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Hesabın yok mu? ',
+                            _isLogin
+                                ? 'Hesabın yok mu? '
+                                : 'Zaten hesabınız var mı? Giriş yapın',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -338,15 +314,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           TextButton(
                             onPressed: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RegisterScreen(),
-                                ),
-                              );
+                              setState(() {
+                                _isLogin = !_isLogin;
+                                _error = '';
+                              });
                             },
                             child: Text(
-                              'Kayıt Ol',
+                              _isLogin ? 'Kayıt Ol' : 'Giriş Yap',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium

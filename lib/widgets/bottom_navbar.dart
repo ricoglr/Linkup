@@ -13,10 +13,19 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavBarState extends State<BottomNavBar> {
   int _selectedIndex = 0;
   bool isDarkMode = false;
-  final List<Widget> _pages = [
-    HomeScreen(),
-    ProfileScreen(),
-  ];
+
+  // Late ile tanımlayalım
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    // initState içinde _pages'i başlatalım
+    _pages = [
+      const HomeScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {

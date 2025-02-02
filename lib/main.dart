@@ -3,31 +3,35 @@ import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'widgets/bottom_navbar.dart';
 
-void main() {
-  runApp(ChangeNotifierProvider(
-      create: (context) => ThemeProvider(), child: MyApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => MyAppState();
-}
-
-class MyAppState extends State<MyApp> {
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
-      return MaterialApp(
-        title: 'LINK UP',
-        debugShowCheckedModeBanner: false,
-        theme:
-            themeProvider.isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
-        themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-        home: LoginScreen(),
-      );
-    });
+    return ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: MaterialApp(
+        title: 'Etkinlik Uygulaması',
+        theme: ThemeData(
+            // ... tema ayarları ...
+            ),
+        initialRoute: '/login',
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/home': (context) => const BottomNavBar(),
+          // ... diğer rotalar ...
+        },
+      ),
+    );
   }
 }
