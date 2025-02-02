@@ -3,8 +3,15 @@ import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(ChangeNotifierProvider(
       create: (context) => ThemeProvider(), child: MyApp()));
 }
