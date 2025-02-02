@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _password = '';
   String _error = '';
   bool _isLogin = true;
+  bool _rememberMe = false;
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -28,13 +29,19 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(context, '/home');
         } else {
           await _authService.registerWithEmailAndPassword(_email, _password);
-          Navigator.pushReplacementNamed(context, '/home');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kayıt başarılı! Şimdi giriş yapabilirsiniz.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          setState(() {
+            _isLogin = true;
+          });
         }
       } catch (e) {
         setState(() {
-          _error = e.toString().contains('firebase_auth')
-              ? 'Email veya şifre hatalı'
-              : e.toString();
+          _error = e.toString();
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -142,11 +149,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           Row(
                             children: [
                               Checkbox(
-                                value: _isLogin,
+                                value: _rememberMe,
                                 onChanged: (value) {
                                   setState(() {
-                                    _isLogin = value ?? false;
-                                    _error = '';
+                                    _rememberMe = value ?? false;
                                   });
                                 },
                                 fillColor:
