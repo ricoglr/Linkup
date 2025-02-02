@@ -58,35 +58,34 @@ class _EventCardState extends State<EventCard> {
     _saveParticipationStatus();
   }
 
-  // Yeni seçenekler menüsünü oluştur
   void _showBottomSheetMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
         return Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.edit),
-                title: Text('Düzenle'),
+                leading: const Icon(Icons.edit),
+                title: const Text('Düzenle'),
                 onTap: () {
                   _editEvent();
-                  Navigator.pop(context); // Menüden çık
+                  Navigator.pop(context);
                 },
               ),
               ListTile(
-                leading: Icon(Icons.delete),
-                title: Text('Sil'),
+                leading: const Icon(Icons.delete),
+                title: const Text('Sil'),
                 onTap: () {
                   _deleteEvent();
                   Navigator.pop(context);
                 },
               ),
               ListTile(
-                leading: Icon(Icons.share),
-                title: Text('Paylaş'),
+                leading: const Icon(Icons.share),
+                title: const Text('Paylaş'),
                 onTap: () {
                   _shareEvent();
                   Navigator.pop(context);
@@ -99,21 +98,15 @@ class _EventCardState extends State<EventCard> {
     );
   }
 
-  // Düzenle butonunun işlevi
   void _editEvent() {
-    // Etkinlik düzenleme ekranına yönlendir
     print('Düzenleme ekranına yönlendiriliyor...');
   }
 
-  // Silme butonunun işlevi
   void _deleteEvent() {
-    // Etkinliği sil
     print('Etkinlik silindi...');
   }
 
-  // Paylaşma butonunun işlevi
   void _shareEvent() {
-    // Etkinliği paylaş
     print('Etkinlik paylaşıldı...');
   }
 
@@ -150,8 +143,8 @@ class _EventCardState extends State<EventCard> {
                 top: 0,
                 right: 0,
                 child: IconButton(
-                  icon: Icon(Icons.more_vert),
-                  onPressed: () => _showBottomSheetMenu(context), // Menüyi aç
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () => _showBottomSheetMenu(context),
                   color: Colors.white,
                 ),
               ),
@@ -219,6 +212,7 @@ class _EventCardState extends State<EventCard> {
                 ),
                 ElevatedButton(
                   onPressed: () {
+                    _saveParticipationStatus();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -228,7 +222,18 @@ class _EventCardState extends State<EventCard> {
                           participantCount: _participantCount,
                         ),
                       ),
-                    );
+                    ).then((result) {
+                      if (result != null && mounted) {
+                        setState(() {
+                          _hasJoined = result['hasJoined'] ?? _hasJoined;
+                          _participantCount =
+                              result['participantCount'] ?? _participantCount;
+                        });
+                        _saveParticipationStatus();
+                      } else {
+                        _loadParticipationStatus();
+                      }
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary),
