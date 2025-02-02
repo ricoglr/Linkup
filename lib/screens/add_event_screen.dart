@@ -350,25 +350,33 @@ class _AddEventScreenState extends State<AddEventScreen> {
     return InkWell(
       onTap: _pickImage,
       child: Container(
-        height: 150,
-        width: double.infinity,
+        height: 200,
         decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          borderRadius: BorderRadius.circular(8),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          image: _selectedImagePath != null
+              ? DecorationImage(
+                  image: FileImage(File(_selectedImagePath!)),
+                  fit: BoxFit.cover,
+                )
+              : null,
         ),
         child: _selectedImagePath == null
-            ? Center(
-                child: Text(
-                  'Resim Seçin',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_photo_alternate,
+                      size: 50, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Etkinlik Görseli Seçin',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                ],
               )
-            : Image.file(
-                File(_selectedImagePath!),
-                fit: BoxFit.cover,
-              ),
+            : null,
       ),
     );
   }

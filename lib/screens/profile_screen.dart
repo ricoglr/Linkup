@@ -67,9 +67,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             expandedHeight: 200,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(_userData['name'],
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary)),
+              title: Text(
+                _userData['name'],
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                    ),
+              ),
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
