@@ -20,7 +20,7 @@ Linkup, aktivistleri, gönüllüleri ve insan hakları konusunda duyarlı bireyl
 
 ## 📸 Ekran Görselleri  
 
-| Login Screen                           | Home Screen                          |
+|                          |                         |
 |----------------------------------------|---------------------------------------------|
 | ![Ekran Görseli 1](assets/images/img1.png)   | ![Ekran Görseli 2](assets/images/img2.png)  |
 | ![Ekran Görseli 3](assets/images/img3.png)   | ![Ekran Görseli 4](assets/images/img4.png)  |
@@ -87,7 +87,11 @@ Linkup is a **mobile application** designed to connect activists, volunteers, an
 ---
 
 ## 📸 Screenshots  
-_Add screenshots and designs here._  
+|                          |                         |
+|----------------------------------------|---------------------------------------------|
+| ![Ekran Görseli 1](assets/images/img1.png)   | ![Ekran Görseli 2](assets/images/img2.png)  |
+| ![Ekran Görseli 3](assets/images/img3.png)   | ![Ekran Görseli 4](assets/images/img4.png)  |
+| ![Ekran Görseli 5](assets/images/img5.png)   | ![Ekran Görseli 6](assets/images/img6.png)  |
 
 ---
 
