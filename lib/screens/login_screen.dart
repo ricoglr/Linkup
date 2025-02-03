@@ -100,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               .colorScheme
                               .onSecondary
                               .withOpacity(0.7),
-                          fontSize: 15,
+                          fontSize: 16,
                         ),
                   ),
                   const SizedBox(height: 8),
