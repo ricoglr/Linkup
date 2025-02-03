@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 30),
                   Text(
-                    'Giriş Yap',
+                    _isLogin ? 'Giriş Yap' : 'Kayıt Ol',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Theme.of(context).colorScheme.onSecondary,
                           fontSize: 22,
@@ -92,7 +92,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    'Bilgilerinizi Girerek Giriş Yapın',
+                    _isLogin
+                        ? 'Bilgilerinizi Girerek Giriş Yapın'
+                        : 'Bilgilerinizi Girerek Üye Olun',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
