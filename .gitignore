@@ -3,41 +3,58 @@ google-services.json
 GoogleService-Info.plist
 firebase_options.dart
 firebase_app_id_file.json
+firebase.json
 
-# Flutter/Dart
+# Ortam değişkenleri ve gizli anahtarlar
+.env
+.env.*
+*.env
+secrets.json
+key.properties
+
+# IDE ve sistem dosyaları
+.idea/
+.vscode/
+.DS_Store
+*.iml
+*.log
+
+# Flutter/Dart özel dosyaları
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 build/
-.pub-cache/
 .pub/
+.pub-cache/
+*.lock
+coverage/
 
-# IDE dosyaları
-.idea/
-.vscode/
-*.iml
+# Android özel dosyaları
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.*
+**/android/key.properties
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
 
-# iOS
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/Flutter.podspec
-ios/Flutter/Generated.xcconfig
-ios/Flutter/flutter_export_environment.sh
-
-# Android
-android/app/debug
-android/app/profile
-android/app/release
-android/.gradle/
-android/local.properties
-android/keystore.properties
-*.keystore
-*.jks
-
-# Env dosyaları
-.env
-.env.*
-lib/.DS_Store
-lib/constant/.DS_Store
-.DS_Store
+# iOS özel dosyaları
+**/ios/Flutter/.last_build_id
+**/ios/*.mode1v3
+**/ios/*.mode2v3
+**/ios/*.moved-aside
+**/ios/*.pbxuser
+**/ios/*.perspectivev3
+**/ios/**/*sync/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral
+**/ios/Flutter/flutter_assets/
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Pods/

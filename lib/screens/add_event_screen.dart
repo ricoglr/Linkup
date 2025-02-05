@@ -10,7 +10,9 @@ import '../services/event_service.dart';
 import '../widgets/time_selector.dart';
 
 class AddEventScreen extends StatefulWidget {
-  const AddEventScreen({Key? key}) : super(key: key);
+  final Event? event;
+
+  const AddEventScreen({super.key, this.event});
 
   @override
   State<AddEventScreen> createState() => _AddEventScreenState();
@@ -59,6 +61,17 @@ class _AddEventScreenState extends State<AddEventScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    if (widget.event != null) {
+      _eventName = widget.event!.title;
+      _description = widget.event!.description;
+      _startDate = widget.event!.date;
+      _startTime = _parseTimeString(widget.event!.time);
+      _location = widget.event!.location;
+      _eventType = widget.event!.category;
+      _selectedImagePath = widget.event!.imageUrl;
+      _contactPhone = widget.event!.contactPhone;
+      _organizationInfo = widget.event!.organizationInfo;
+    }
   }
 
   @override
@@ -391,7 +404,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
     }
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
@@ -429,7 +442,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
       }
 
       final event = Event(
-        id: DateTime.now().toString(),
+        id: widget.event?.id ?? DateTime.now().toString(),
         title: _eventName!,
         description: _description ?? '',
         date: _startDate!,
@@ -444,19 +457,18 @@ class _AddEventScreenState extends State<AddEventScreen> {
         organizationInfo: _organizationInfo ?? '',
       );
 
-      EventService().addEvent(event);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Etkinlik başarıyla oluşturuldu!',
-            style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
-          ),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
-      );
-
-      Navigator.pop(context);
+      try {
+        if (widget.event != null) {
+          await EventService().updateEvent(event);
+          _showSuccessMessage('Etkinlik güncellendi!');
+        } else {
+          await EventService().createEvent(event);
+          _showSuccessMessage('Etkinlik oluşturuldu!');
+        }
+        Navigator.pop(context);
+      } catch (e) {
+        _showErrorSnackBar(e.toString());
+      }
     }
   }
 
@@ -472,6 +484,18 @@ class _AddEventScreenState extends State<AddEventScreen> {
     );
   }
 
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+      ),
+    );
+  }
+
   DateTime _combineDateTime(DateTime date, TimeOfDay time) {
     return DateTime(
       date.year,
@@ -480,5 +504,12 @@ class _AddEventScreenState extends State<AddEventScreen> {
       time.hour,
       time.minute,
     );
+  }
+
+  TimeOfDay _parseTimeString(String timeString) {
+    final parts = timeString.split(':');
+    final hour = int.parse(parts[0]);
+    final minute = int.parse(parts[1]);
+    return TimeOfDay(hour: hour, minute: minute);
   }
 }

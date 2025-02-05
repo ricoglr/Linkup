@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom__textfield.dart';
 import 'login_screen.dart';
+import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,25 +11,19 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-
-  // Form anahtarı ile form doğrulama kontrolü
   final _formKey = GlobalKey<FormState>();
 
-  // TextField controller'ları
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
+  // Controller'ları güncelle
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
-  String? _handleName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Bu alan gerekli';
-    }
-    return null;
-  }
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   String? _handleEmail(String? value) {
     if (value == null || value.isEmpty) {
@@ -62,300 +57,273 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  Future<void> showConfirmationDialog(BuildContext context) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final textTheme = Theme.of(context).textTheme;
-
-        return AlertDialog(
-          title: Text(
-            'Kayıt Başarılı',
-            style: textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          content: Text(
-            'Kayıt oldunuz. Lütfen giriş yapın.',
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w300,
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text(
-                'Tamam',
-                style: textTheme.labelLarge?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                  (route) => false,
-                );
-              },
-            ),
-          ],
-          backgroundColor: colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          // Üst bölüm - Başlık ve açıklama
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            color: Theme.of(context).colorScheme.primary,
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
-                  Text(
-                    'Hesap Oluştur',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Bilgilerinizi girerek üye olun',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onPrimary
-                              .withOpacity(0.7),
-                        ),
-                  ),
-                  const SizedBox(height: 30),
-                ],
-              ),
-            ),
-          ),
-
-          // Alt bölüm - Kayıt formu
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSecondary,
-              ),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
+      body: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // Üst bölüm - Başlık ve açıklama
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                color: Theme.of(context).colorScheme.primary,
+                child: SafeArea(
+                  bottom: false,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 8),
-                      // Ad alanı
-                      CustomTextField(
-                        labelText: 'Ad',
-                        hintText: 'Adınızı girin',
-                        controller: _firstNameController,
-                        validator: _handleName,
+                      const SizedBox(height: 40),
+                      Text(
+                        'Hesap Oluştur',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineLarge
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
-                      const SizedBox(height: 16),
-
-// Soyad alanı
-                      CustomTextField(
-                        labelText: 'Soyad',
-                        hintText: 'Soyadınızı girin',
-                        controller: _lastNameController,
-                        validator: _handleName,
-                      ),
-                      const SizedBox(height: 16),
-
-// Email alanı
-                      CustomTextField(
-                        labelText: 'Email',
-                        hintText: 'mail@example.com',
-                        controller: _emailController,
-                        validator: _handleEmail,
-                      ),
-                      const SizedBox(height: 16),
-
-// Şifre alanı
-                      CustomTextField(
-                        labelText: 'Şifre',
-                        hintText: '••••••••',
-                        controller: _passwordController,
-                        validator: _handlePassword,
-                        obsureText: !_isPasswordVisible,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-// Şifre onay alanı
-                      CustomTextField(
-                        labelText: 'Şifre Onay',
-                        hintText: '••••••••',
-                        controller: _confirmPasswordController,
-                        validator: _handleConfirmPassword,
-                        obsureText: !_isConfirmPasswordVisible,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isConfirmPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isConfirmPasswordVisible =
-                                  !_isConfirmPasswordVisible;
-                            });
-                          },
-                        ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Bilgilerinizi girerek üye olun',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimary
+                                  .withOpacity(0.7),
+                            ),
                       ),
                       const SizedBox(height: 30),
-
-                      // Kayıt ol butonu
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_formKey.currentState?.validate() ?? false) {
-                            showConfirmationDialog(context);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Kayıt Ol',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-                      // Sosyal medya butonları
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _socialButton(
-                              icon: Icons.g_mobiledata_rounded,
-                              label: 'Google',
-                              onTap: () {},
-                              iconColor: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              textStyle: Theme.of(context).textTheme.labelLarge,
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: _socialButton(
-                              icon: Icons.facebook,
-                              label: 'Facebook',
-                              onTap: () {},
-                              iconColor: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              textStyle: Theme.of(context).textTheme.labelLarge,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-                      // Giriş Yap Linki
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Zaten hesabınız var mı? ',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => LoginScreen()),
-                                (route) => false,
-                              );
-                            },
-                            child: Text(
-                              'Giriş Yap',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
               ),
-            ),
+
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Kullanıcı Adı alanı
+                    CustomTextField(
+                      labelText: 'Kullanıcı Adı',
+                      hintText: 'Kullanıcı adınızı girin',
+                      controller: _usernameController,
+                      icon: Icons.person,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Kullanıcı adı gerekli';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Email alanı
+                    CustomTextField(
+                      labelText: 'Email',
+                      hintText: 'mail@example.com',
+                      controller: _emailController,
+                      icon: Icons.email,
+                      validator: _handleEmail,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Telefon alanı
+                    CustomTextField(
+                      labelText: 'Telefon',
+                      hintText: '5XX XXX XX XX',
+                      controller: _phoneController,
+                      icon: Icons.phone,
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Telefon numarası gerekli';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Şifre alanı
+                    CustomTextField(
+                      labelText: 'Şifre',
+                      hintText: '••••••••',
+                      controller: _passwordController,
+                      validator: _handlePassword,
+                      obsureText: !_isPasswordVisible,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Şifre onay alanı
+                    CustomTextField(
+                      labelText: 'Şifre Onay',
+                      hintText: '••••••••',
+                      controller: _confirmPasswordController,
+                      validator: _handleConfirmPassword,
+                      obsureText: !_isConfirmPasswordVisible,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isConfirmPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isConfirmPasswordVisible =
+                                !_isConfirmPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : () => _register(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              'Kayıt Ol',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+
+                    const SizedBox(height: 30),
+                    // Sosyal medya butonları
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _socialButton(
+                            icon: Icons.g_mobiledata_rounded,
+                            label: 'Google',
+                            onTap: () {},
+                            iconColor:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            textStyle: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: _socialButton(
+                            icon: Icons.facebook,
+                            label: 'Facebook',
+                            onTap: () {},
+                            iconColor:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            textStyle: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+                    // Giriş Yap Linki
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Zaten hesabınız var mı? ',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => LoginScreen()),
+                              (route) => false,
+                            );
+                          },
+                          child: Text(
+                            'Giriş Yap',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  Future<void> _register() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _isLoading = true);
+      try {
+        await _authService.registerWithDetails(
+          _emailController.text,
+          _passwordController.text,
+          _usernameController.text,
+          _phoneController.text,
+        );
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Kayıt hatası: ${e.toString()}')),
+          );
+        }
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _usernameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 }
 

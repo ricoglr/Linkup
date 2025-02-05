@@ -8,6 +8,8 @@ class CustomTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final Function(String?)? onSaved;
+  final IconData? icon; // Yeni eklendi
+  final TextInputType? keyboardType; // Yeni eklendi
 
   const CustomTextField({
     super.key,
@@ -18,6 +20,8 @@ class CustomTextField extends StatelessWidget {
     this.suffixIcon,
     this.validator,
     this.onSaved,
+    this.icon, // Yeni eklendi
+    this.keyboardType, // Yeni eklendi
   });
 
   @override
@@ -27,6 +31,7 @@ class CustomTextField extends StatelessWidget {
       obscureText: obsureText,
       validator: validator,
       onSaved: onSaved,
+      keyboardType: keyboardType, // Yeni eklendi
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
@@ -40,6 +45,9 @@ class CustomTextField extends StatelessWidget {
         ),
         contentPadding: const EdgeInsets.all(16),
         suffixIcon: suffixIcon,
+        prefixIcon: icon != null
+            ? Icon(icon, color: Colors.grey.shade600)
+            : null, // Yeni eklendi
         border: _buildBorder(),
         enabledBorder: _buildBorder(color: Colors.grey.shade300),
         focusedBorder: _buildBorder(color: Colors.grey.shade500),

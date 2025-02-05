@@ -5,6 +5,7 @@ import '../services/badge_service.dart';
 import '../theme/theme_provider.dart';
 import 'login_screen.dart';
 import '../services/auth_service.dart';
+import '../services/event_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,17 +17,11 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final BadgeService _badgeService = BadgeService();
   final AuthService _authService = AuthService();
+  final EventService _eventService = EventService();
+  Map<String, dynamic>? _userData;
+  int _eventCount = 0;
 
   // Temsili veriler aynı kalacak
-  final Map<String, dynamic> _userData = {
-    'name': 'Kullanıcı Adı',
-    'email': 'kullanici@email.com',
-    'phone': '5XX XXX XX XX',
-    'joinedEvents': 12,
-    'createdEvents': 5,
-  };
-
-  // Temsili geçmiş etkinlikler aynı kalacak
   final List<Event> _pastEvents = [
     Event(
       id: '1',
@@ -59,53 +54,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+    _loadEventCount();
+  }
+
+  Future<void> _loadUserData() async {
+    final userData = await _authService.getUserData();
+    setState(() {
+      _userData = userData;
+    });
+  }
+
+  Future<void> _loadEventCount() async {
+    final count = await _eventService.getUserEventCount();
+    setState(() {
+      _eventCount = count;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                _userData['name'],
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
+      body: _userData == null
+          ? const Center(child: CircularProgressIndicator())
+          : CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 200,
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    title: Text(
+                      _userData?['username'] ?? 'Yükleniyor...',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                          ),
                     ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                    background: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Theme.of(context).colorScheme.primary,
+                            Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.7),
+                          ],
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.person,
+                        size: 80,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimary
+                            .withOpacity(0.24),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      _buildStatsCard(),
+                      _buildBadgesSection(),
+                      _buildProfileSection(),
+                      _buildPastEventsSection(),
+                      _buildSettingsSection(),
                     ],
                   ),
                 ),
-                child: Icon(
-                  Icons.person,
-                  size: 80,
-                  color:
-                      Theme.of(context).colorScheme.onPrimary.withOpacity(0.24),
-                ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _buildStatsCard(),
-                _buildBadgesSection(),
-                _buildProfileSection(),
-                _buildPastEventsSection(),
-                _buildSettingsSection(),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -117,9 +140,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildStatItem('Katıldığı\nEtkinlikler', _userData['joinedEvents']),
             _buildStatItem(
-                'Oluşturduğu\nEtkinlikler', _userData['createdEvents']),
+                'Katıldığı\nEtkinlikler', _userData?['joinedEvents'] ?? 0),
+            _buildStatItem('Oluşturduğu\nEtkinlikler', _eventCount),
           ],
         ),
       ),
@@ -362,35 +385,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ListTile(
             leading: Icon(Icons.person,
                 color: Theme.of(context).colorScheme.primary),
-            title: Text(_userData['name'],
+            title: Text(_userData?['username'] ?? '',
                 style: Theme.of(context).textTheme.bodyLarge),
             trailing:
                 Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
-            onTap: () {
-              // TODO: İsim düzenleme
-            },
           ),
           ListTile(
             leading:
                 Icon(Icons.email, color: Theme.of(context).colorScheme.primary),
-            title: Text(_userData['email'],
+            title: Text(_userData?['email'] ?? '',
                 style: Theme.of(context).textTheme.bodyLarge),
             trailing:
                 Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
-            onTap: () {
-              // TODO: Email düzenleme
-            },
           ),
           ListTile(
             leading:
                 Icon(Icons.phone, color: Theme.of(context).colorScheme.primary),
-            title: Text(_userData['phone'],
+            title: Text(_userData?['phone'] ?? '',
                 style: Theme.of(context).textTheme.bodyLarge),
             trailing:
                 Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
-            onTap: () {
-              // TODO: Telefon düzenleme
+          ),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.info_outline,
+                color: Theme.of(context).colorScheme.primary),
+            title: Text('Hakkımda',
+                style: Theme.of(context).textTheme.titleMedium),
+            subtitle:
+                Text(_userData?['about'] ?? 'Henüz bir açıklama eklenmemiş'),
+            trailing: IconButton(
+              icon: Icon(Icons.edit,
+                  color: Theme.of(context).colorScheme.primary),
+              onPressed: () => _showEditAboutDialog(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditAboutDialog() {
+    final controller = TextEditingController(text: _userData?['about'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hakkımda'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Kendiniz hakkında bir şeyler yazın...',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _authService.updateUserAbout(controller.text);
+              if (mounted) {
+                Navigator.pop(context);
+                _loadUserData(); // Profili yenile
+              }
             },
+            child: const Text('Kaydet'),
           ),
         ],
       ),
@@ -548,12 +610,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Theme.of(context).colorScheme.primary,
                         ),
                         onPressed: () {
-                          Navigator.pushAndRemoveUntil(
+                          _authService.signOut();
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => LoginScreen(),
+                              builder: (context) => const LoginScreen(),
                             ),
-                            (Route<dynamic> route) => false,
                           );
                         },
                         child: Text(

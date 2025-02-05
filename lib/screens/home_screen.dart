@@ -12,229 +12,104 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  final EventService _eventService = EventService();
-  List<Event> _events = [];
   late TabController _tabController;
+  late Stream<List<Event>> _eventsStream;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadEvents();
-    _eventService.addListener(_loadEvents);
+    _eventsStream = EventService().getEvents();
   }
 
   @override
   void dispose() {
-    _eventService.removeListener(_loadEvents);
     _tabController.dispose();
     super.dispose();
   }
 
-  void _loadEvents() {
-    setState(() {
-      _events = List.from(_eventService.events)
-        ..sort((a, b) => a.date.compareTo(b.date));
-    });
-  }
-
-  // Mevcut event filtreleme metodları aynı kalacak
-  List<Event> get _todayEvents {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final todayEnd = todayStart.add(const Duration(days: 1));
-
-    return _events.where((event) {
-      final eventDateTime = _combineDateTime(event.date, event.time);
-      return eventDateTime.isAfter(todayStart) &&
-          eventDateTime.isBefore(todayEnd);
-    }).toList()
-      ..sort((a, b) => _combineDateTime(a.date, a.time)
-          .compareTo(_combineDateTime(b.date, b.time)));
-  }
-
-  List<Event> get _thisWeekEvents {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final weekEnd = today.add(const Duration(days: 7));
-
-    return _events.where((event) {
-      return event.date.isAfter(today) && event.date.isBefore(weekEnd);
-    }).toList();
-  }
-
-  List<Event> get _allEvents {
-    final now = DateTime.now();
-    return _events.where((event) {
-      final eventDateTime = _combineDateTime(event.date, event.time);
-      return eventDateTime.isAfter(now);
-    }).toList()
-      ..sort((a, b) => _combineDateTime(a.date, a.time)
-          .compareTo(_combineDateTime(b.date, b.time)));
-  }
-
-  List<Event> get _nextOneHoursEvents {
-    final now = DateTime.now();
-    final threeHoursLater = now.add(const Duration(hours: 1));
-
-    return _events.where((event) {
-      final eventDateTime = _combineDateTime(event.date, event.time);
-      return eventDateTime.isAfter(now) &&
-          eventDateTime.isBefore(threeHoursLater);
-    }).toList()
-      ..sort((a, b) => _combineDateTime(a.date, a.time)
-          .compareTo(_combineDateTime(b.date, b.time)));
-  }
-
-  DateTime _combineDateTime(DateTime date, String timeStr) {
-    final timeParts = timeStr.split(':');
-    return DateTime(
-      date.year,
-      date.month,
-      date.day,
-      int.parse(timeParts[0]),
-      int.parse(timeParts[1]),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Bottom bar ile aynı renk
-    final barColor = isDark
-        ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-        : Theme.of(context).colorScheme.primary.withOpacity(0.2);
-
     return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              pinned: true,
-              floating: true,
-              centerTitle: true,
-              backgroundColor: barColor,
-              title: Text(
-                'Etkinlikler',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-              ),
-              bottom: TabBar(
-                controller: _tabController,
-                labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                indicatorColor: Theme.of(context).colorScheme.primary,
-                tabs: const [
-                  Tab(text: 'Bugün'),
-                  Tab(text: 'Bu Hafta'),
-                  Tab(text: 'Tümü'),
-                ],
-              ),
-            ),
-          ];
-        },
-        body: CustomScrollView(
-          slivers: [
-            if (_nextOneHoursEvents.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 20,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Yaklaşan Etkinlikler',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: _nextOneHoursEvents
-                              .map((event) => Card(
-                                    margin: const EdgeInsets.only(right: 8),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.event,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '${event.title} (${event.time})',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            SliverFillRemaining(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildEventList(_todayEvents),
-                  _buildEventList(_thisWeekEvents),
-                  _buildEventList(_allEvents),
-                ],
-              ),
-            ),
+      appBar: AppBar(
+        title: const Text('Etkinlikler'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Bugün'),
+            Tab(text: 'Bu Hafta'),
+            Tab(text: 'Tümü'),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildEventListForTab(0),
+          _buildEventListForTab(1),
+          _buildEventListForTab(2),
+        ],
       ),
     );
   }
 
-  Widget _buildEventList(List<Event> events) {
-    return events.isEmpty
-        ? Center(
-            child: Text(
-              'Etkinlik bulunmamaktadır',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          )
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: events.length,
-            itemBuilder: (context, index) {
-              return EventCard(event: events[index]);
-            },
-          );
+  Widget _buildEventListForTab(int tabIndex) {
+    return StreamBuilder<List<Event>>(
+      stream: _eventsStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Bir hata oluştu: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final events = snapshot.data ?? [];
+        List<Event> filteredEvents;
+
+        final now = DateTime.now();
+        if (tabIndex == 0) {
+          // Bugün
+          final todayStart = DateTime(now.year, now.month, now.day);
+          final todayEnd = todayStart.add(const Duration(days: 1));
+          filteredEvents = events.where((event) {
+            final eventDateTime = _combineDateTime(event.date, event.time);
+            return eventDateTime.isAfter(todayStart) &&
+                eventDateTime.isBefore(todayEnd);
+          }).toList();
+        } else if (tabIndex == 1) {
+          // Bu Hafta
+          final weekStart = now.subtract(Duration(days: now.weekday - 1));
+          final weekEnd = weekStart.add(const Duration(days: 7));
+          filteredEvents = events.where((event) {
+            final eventDateTime = _combineDateTime(event.date, event.time);
+            return eventDateTime.isAfter(weekStart) &&
+                eventDateTime.isBefore(weekEnd);
+          }).toList();
+        } else {
+          // Tümü
+          filteredEvents = events;
+        }
+
+        if (filteredEvents.isEmpty) {
+          return const Center(child: Text('Etkinlik bulunamadı'));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: filteredEvents.length,
+          itemBuilder: (context, index) =>
+              EventCard(event: filteredEvents[index]),
+        );
+      },
+    );
+  }
+
+  DateTime _combineDateTime(DateTime date, String time) {
+    final timeParts = time.split(':');
+    final hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+    return DateTime(date.year, date.month, date.day, hour, minute);
   }
 }

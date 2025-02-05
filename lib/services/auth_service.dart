@@ -1,7 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../constant/entities.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  User? get currentUser => _auth.currentUser;
 
   // Kullanıcı durumu stream'i
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -52,8 +58,65 @@ class AuthService {
     }
   }
 
+  Future<void> registerWithDetails(
+    String email,
+    String password,
+    String username,
+    String phone,
+  ) async {
+    final userCredential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    await _firestore.collection('users').doc(userCredential.user!.uid).set({
+      'username': username,
+      'phone': phone,
+      'email': email,
+      'about': '',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<Map<String, dynamic>?> getUserData({String? userId}) async {
+    final uid = userId ?? _auth.currentUser?.uid;
+    if (uid == null) return null;
+
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return doc.data();
+  }
+
   // Çıkış yap
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  Future<void> updateUserAbout(String about) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    await _firestore.collection('users').doc(user.uid).update({
+      'about': about,
+    });
+  }
+
+  Future<List<AppUser>> searchUsers(String query) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .where('username', isGreaterThanOrEqualTo: query)
+        .where('username', isLessThan: query + 'z')
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return AppUser(
+        id: doc.id,
+        username: data['username'],
+        email: data['email'],
+        phone: data['phone'],
+        about: data['about'] ?? '',
+        createdAt: (data['createdAt'] as Timestamp).toDate(),
+      );
+    }).toList();
   }
 }

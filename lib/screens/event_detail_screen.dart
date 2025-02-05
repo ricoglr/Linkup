@@ -1,18 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../constant/entities.dart';
+import '../services/event_service.dart';
+import '../services/auth_service.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final Event event;
-  final bool hasJoined;
-  final int participantCount;
 
   const EventDetailScreen({
     super.key,
     required this.event,
-    required this.hasJoined,
-    required this.participantCount,
   });
 
   @override
@@ -20,28 +17,25 @@ class EventDetailScreen extends StatefulWidget {
 }
 
 class _EventDetailScreenState extends State<EventDetailScreen> {
-  late bool _hasJoined;
-  late int _participantCount;
+  final EventService _eventService = EventService();
+  final AuthService _authService = AuthService();
+  bool _isParticipating = false;
   final TextEditingController _commentController = TextEditingController();
   final List<String> _comments = [];
 
   @override
   void initState() {
     super.initState();
-    _hasJoined = widget.hasJoined;
-    _participantCount = widget.participantCount;
+    _checkParticipation();
   }
 
-  Future<void> _joinEvent() async {
-    setState(() {
-      _hasJoined = !_hasJoined;
-      _participantCount += _hasJoined ? 1 : -1;
-    });
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('joined_${widget.event.id}', _hasJoined);
-    await prefs.setInt(
-        'participantCount_${widget.event.id}', _participantCount);
+  Future<void> _checkParticipation() async {
+    final currentUserId = _authService.currentUser?.uid;
+    if (currentUserId != null) {
+      setState(() {
+        _isParticipating = widget.event.participants.contains(currentUserId);
+      });
+    }
   }
 
   @override
@@ -49,8 +43,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Navigator.pop(context, {
-          'hasJoined': _hasJoined,
-          'participantCount': _participantCount,
+          'hasJoined': _isParticipating,
         });
       }
     });
@@ -150,14 +143,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       children: [
                         ElevatedButton.icon(
                           onPressed: () async {
-                            await _joinEvent();
+                            if (_isParticipating) {
+                              await _eventService.leaveEvent(widget.event.id);
+                            } else {
+                              await _eventService.joinEvent(widget.event.id);
+                            }
+                            setState(() {
+                              _isParticipating = !_isParticipating;
+                            });
                           },
                           icon: Icon(
-                            _hasJoined ? Icons.check : Icons.person_add,
+                            _isParticipating ? Icons.check : Icons.person_add,
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                           label: Text(
-                            _hasJoined ? 'Katıldım' : 'Katıl',
+                            _isParticipating ? 'Katıldım' : 'Katıl',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onPrimary,
                             ),
@@ -166,13 +166,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                             backgroundColor:
                                 Theme.of(context).colorScheme.primary,
                           ),
-                        ),
-                        Text(
-                          "$_participantCount kişi katıldı",
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
                         ),
                       ],
                     ),
