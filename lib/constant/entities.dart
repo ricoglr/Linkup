@@ -86,3 +86,21 @@ class Badge {
     required this.category,
   });
 }
+
+class AppUser {
+  final String id;
+  final String username;
+  final String email;
+  final String phone;
+  final String about;
+  final DateTime createdAt;
+
+  AppUser({
+    required this.id,
+    required this.username,
+    required this.email,
+    required this.phone,
+    this.about = '',
+    required this.createdAt,
+  });
+}
