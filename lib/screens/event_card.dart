@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../constant/entities.dart';
 import 'event_detail_screen.dart';
+import '../services/event_service.dart';
+import '../services/auth_service.dart';
+import '../screens/add_event_screen.dart';
 
 class EventCard extends StatefulWidget {
   final Event event;
@@ -17,48 +19,18 @@ class EventCard extends StatefulWidget {
 }
 
 class _EventCardState extends State<EventCard> {
-  int _participantCount = 0;
-  bool _hasJoined = false;
+  final EventService _eventService = EventService();
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    _loadParticipationStatus();
-  }
-
-  Future<void> _loadParticipationStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    bool joined = prefs.getBool('joined_${widget.event.id}') ?? false;
-    int participantCount =
-        prefs.getInt('participantCount_${widget.event.id}') ?? 0;
-
-    setState(() {
-      _hasJoined = joined;
-      _participantCount = participantCount;
-    });
-  }
-
-  Future<void> _saveParticipationStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('joined_${widget.event.id}', _hasJoined);
-    await prefs.setInt(
-        'participantCount_${widget.event.id}', _participantCount);
-  }
-
-  void _joinEvent() {
-    setState(() {
-      if (_hasJoined) {
-        _participantCount -= 1;
-        _hasJoined = false;
-      } else {
-        _participantCount += 1;
-        _hasJoined = true;
-      }
-    });
-    _saveParticipationStatus();
   }
 
   void _showBottomSheetMenu(BuildContext context) {
+    final currentUserId = _authService.currentUser?.uid;
+    final isOwner = widget.event.organizerId == currentUserId;
+
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -67,28 +39,35 @@ class _EventCardState extends State<EventCard> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text('Düzenle'),
-                onTap: () {
-                  _editEvent();
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete),
-                title: const Text('Sil'),
-                onTap: () {
-                  _deleteEvent();
-                  Navigator.pop(context);
-                },
-              ),
+              if (isOwner) ...[
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('Düzenle'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _editEvent();
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.delete,
+                      color: Theme.of(context).colorScheme.error),
+                  title: Text(
+                    'Sil',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showDeleteConfirmation();
+                  },
+                ),
+              ],
               ListTile(
                 leading: const Icon(Icons.share),
                 title: const Text('Paylaş'),
                 onTap: () {
-                  _shareEvent();
                   Navigator.pop(context);
+                  _shareEvent();
                 },
               ),
             ],
@@ -98,12 +77,44 @@ class _EventCardState extends State<EventCard> {
     );
   }
 
-  void _editEvent() {
-    print('Düzenleme ekranına yönlendiriliyor...');
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Etkinliği Sil'),
+        content: const Text('Bu etkinliği silmek istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _eventService.deleteEvent(widget.event.id);
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Etkinlik silindi')),
+                );
+              }
+            },
+            child: Text(
+              'Sil',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _deleteEvent() {
-    print('Etkinlik silindi...');
+  void _editEvent() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEventScreen(event: widget.event),
+      ),
+    );
   }
 
   void _shareEvent() {
@@ -112,6 +123,10 @@ class _EventCardState extends State<EventCard> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = _authService.currentUser?.uid;
+    final isParticipating = widget.event.participants.contains(currentUserId);
+    final participantCount = widget.event.participants.length;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -180,7 +195,7 @@ class _EventCardState extends State<EventCard> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Katılımcı Sayısı: $_participantCount',
+                  'Katılımcı Sayısı: $participantCount',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -194,13 +209,20 @@ class _EventCardState extends State<EventCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton.icon(
-                  onPressed: _joinEvent,
+                  onPressed: () async {
+                    if (isParticipating) {
+                      await _eventService.leaveEvent(widget.event.id);
+                    } else {
+                      await _eventService.joinEvent(widget.event.id);
+                    }
+                    setState(() {});
+                  },
                   icon: Icon(
-                    _hasJoined ? Icons.check : Icons.person_add,
+                    isParticipating ? Icons.check : Icons.person_add,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   label: Text(
-                    _hasJoined ? 'Katıldım' : 'Katıl',
+                    isParticipating ? 'Katıldım' : 'Katıl',
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -212,26 +234,22 @@ class _EventCardState extends State<EventCard> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    _saveParticipationStatus();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => EventDetailScreen(
                           event: widget.event,
-                          hasJoined: _hasJoined,
-                          participantCount: _participantCount,
                         ),
                       ),
                     ).then((result) {
                       if (result != null && mounted) {
                         setState(() {
-                          _hasJoined = result['hasJoined'] ?? _hasJoined;
-                          _participantCount =
-                              result['participantCount'] ?? _participantCount;
+                          // _hasJoined = result['hasJoined'] ?? _hasJoined;
+                          // _participantCount =
+                          //     result['participantCount'] ?? _participantCount;
                         });
-                        _saveParticipationStatus();
                       } else {
-                        _loadParticipationStatus();
+                        // _loadParticipationStatus();
                       }
                     });
                   },
