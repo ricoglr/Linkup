@@ -36,8 +36,13 @@ class EventService {
         .orderBy('date', descending: false)
         .snapshots()
         .map((snapshot) {
+      print("🔥 Firebase'den gelen etkinlik sayısı: ${snapshot.docs.length}");
+
       return snapshot.docs.map((doc) {
         final data = doc.data();
+        print(
+            "📅 Etkinlik: ${data['title']}, Tarih: ${data['date']}, Saat: ${data['time']}");
+
         return Event(
           id: doc.id,
           title: data['title'],
