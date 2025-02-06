@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../constant/entities.dart';
 import '../services/event_service.dart';
 import 'event_card.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +35,17 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Etkinlikler'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SearchScreen()),
+              );
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -58,21 +71,27 @@ class _HomeScreenState extends State<HomeScreen>
       stream: _eventsStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          print("❌ Firebase Hatası: ${snapshot.error}");
           return Center(child: Text('Bir hata oluştu: ${snapshot.error}'));
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
+          print("⏳ Firebase verileri yükleniyor...");
           return const Center(child: CircularProgressIndicator());
         }
 
         final events = snapshot.data ?? [];
+        print("📌 Firebase'den gelen etkinlik sayısı: ${events.length}");
+
         List<Event> filteredEvents;
 
         final now = DateTime.now();
+
         if (tabIndex == 0) {
           // Bugün
           final todayStart = DateTime(now.year, now.month, now.day);
           final todayEnd = todayStart.add(const Duration(days: 1));
+
           filteredEvents = events.where((event) {
             final eventDateTime = _combineDateTime(event.date, event.time);
             return eventDateTime.isAfter(todayStart) &&
