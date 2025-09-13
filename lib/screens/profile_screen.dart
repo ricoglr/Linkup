@@ -1,641 +1,346 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../constant/entities.dart';
-import '../services/badge_service.dart';
-import '../theme/theme_provider.dart';
-import 'login_screen.dart';
-import '../services/auth_service.dart';
-import '../services/event_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../providers/profile_update_provider.dart';
+import '../providers/badge_provider.dart';
+import '../providers/user_stats_provider.dart';
+import '../widgets/profile_widgets.dart';
+import '../widgets/badge_display.dart';
+import '../widgets/user_stats_display.dart';
+import 'profile_edit_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId; // Null ise current user
+
+  const ProfileScreen({Key? key, this.userId}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final BadgeService _badgeService = BadgeService();
-  final AuthService _authService = AuthService();
-  final EventService _eventService = EventService();
-  Map<String, dynamic>? _userData;
-  int _eventCount = 0;
-
-  // Temsili veriler aynı kalacak
-  final List<Event> _pastEvents = [
-    Event(
-      id: '1',
-      title: 'Çocuk Hakları Konferansı',
-      description: 'Çocuk hakları üzerine farkındalık konferansı',
-      date: DateTime.now().subtract(const Duration(days: 5)),
-      time: '14:00',
-      location: 'Ankara',
-      category: 'Çocuk Hakları',
-      imageUrl: '',
-      organizerId: 'org1',
-      createdAt: DateTime.now(),
-      contactPhone: '555-0001',
-      organizationInfo: 'UNICEF Türkiye',
-    ),
-    Event(
-      id: '2',
-      title: 'Kadın Hakları Paneli',
-      description: 'Kadın hakları ve eşitlik paneli',
-      date: DateTime.now().subtract(const Duration(days: 10)),
-      time: '15:30',
-      location: 'İstanbul',
-      category: 'Kadın Hakları',
-      imageUrl: '',
-      organizerId: 'org2',
-      createdAt: DateTime.now(),
-      contactPhone: '555-0002',
-      organizationInfo: 'UN Women',
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _loadEventCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadUserData());
   }
 
-  Future<void> _loadUserData() async {
-    final userData = await _authService.getUserData();
-    setState(() {
-      _userData = userData;
-    });
+  void _loadUserData() {
+    try {
+      final profileProvider = context.read<ProfileUpdateProvider>();
+      final badgeProvider = context.read<BadgeProvider>();
+      final statsProvider = context.read<UserStatsProvider>();
+
+      if (widget.userId != null) {
+        // Başka kullanıcının profilini yükle
+        badgeProvider.loadUserBadges(widget.userId!);
+        statsProvider.loadUserStats(widget.userId!);
+      } else {
+        // Mevcut kullanıcının profilini yükle
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+        if (currentUserId != null) {
+          badgeProvider.loadUserBadges(currentUserId);
+          statsProvider.loadUserStats(currentUserId);
+        }
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
   }
 
-  Future<void> _loadEventCount() async {
-    final count = await _eventService.getUserEventCount();
-    setState(() {
-      _eventCount = count;
-    });
-  }
+  bool get _isCurrentUser => widget.userId == null || 
+      widget.userId == FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _userData == null
-          ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  expandedHeight: 200,
-                  pinned: true,
-                  flexibleSpace: FlexibleSpaceBar(
-                    title: Text(
-                      _userData?['username'] ?? 'Yükleniyor...',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                          ),
-                    ),
-                    background: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Theme.of(context).colorScheme.primary,
-                            Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withOpacity(0.7),
-                          ],
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.person,
-                        size: 80,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimary
-                            .withOpacity(0.24),
-                      ),
-                    ),
-                  ),
+      appBar: AppBar(
+        title: Text(_isCurrentUser ? 'Profilim' : 'Profil'),
+        actions: [
+          if (_isCurrentUser)
+            IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileEditScreen(),
                 ),
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      _buildStatsCard(),
-                      _buildBadgesSection(),
-                      _buildProfileSection(),
-                      _buildPastEventsSection(),
-                      _buildSettingsSection(),
-                    ],
-                  ),
-                ),
+              ),
+              icon: const Icon(Icons.edit),
+            ),
+        ],
+      ),
+      body: Consumer3<ProfileUpdateProvider, BadgeProvider, UserStatsProvider>(
+        builder: (context, profileProvider, badgeProvider, statsProvider, child) {
+          final user = FirebaseAuth.instance.currentUser;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Profil Başlığı
+                _buildProfileHeader(context, user),
+                
+                const SizedBox(height: 24),
+                
+                // İstatistikler
+                _buildStatsSection(context, statsProvider),
+                
+                const SizedBox(height: 24),
+                
+                // Rozetler
+                _buildBadgesSection(context, badgeProvider),
+                
+                const SizedBox(height: 24),
+                
+                // Kişisel Bilgiler
+                _buildPersonalInfoSection(context, user),
+                
+                const SizedBox(height: 24),
+                
+                // Güvenlik Bilgileri (sadece current user için)
+                if (_isCurrentUser) _buildSecurityInfoSection(context, user),
               ],
             ),
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildStatsCard() {
+  Widget _buildProfileHeader(BuildContext context, User? user) {
     return Card(
-      margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        padding: const EdgeInsets.all(20),
+        child: Column(
           children: [
-            _buildStatItem(
-                'Katıldığı\nEtkinlikler', _userData?['joinedEvents'] ?? 0),
-            _buildStatItem('Oluşturduğu\nEtkinlikler', _eventCount),
+            ProfilePhotoWidget(
+              photoUrl: user?.photoURL,
+              onTap: _isCurrentUser ? () => _navigateToEdit() : () {},
+              radius: 50,
+              showEditIcon: _isCurrentUser,
+            ),
+            const SizedBox(height: 16),
+            
+            Text(
+              user?.displayName ?? 'İsimsiz Kullanıcı',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildInfoItem(
+                  icon: Icons.calendar_today,
+                  label: 'Katılım',
+                  value: _formatJoinDate(user?.metadata.creationTime),
+                ),
+                _buildInfoItem(
+                  icon: Icons.email,
+                  label: 'Email',
+                  value: user?.emailVerified == true ? 'Doğrulandı' : 'Doğrulanmadı',
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatItem(String label, int value) {
+  Widget _buildInfoItem({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
     return Column(
       children: [
-        Text(
-          value.toString(),
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
+        Icon(icon, color: Theme.of(context).primaryColor),
         const SizedBox(height: 4),
         Text(
           label,
-          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        Text(
+          value,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildBadgesSection() {
-    final badges = _badgeService.getUserBadges("current_user_id");
-
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(Icons.military_tech,
-                    size: 24, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Rozetlerim',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const Spacer(),
-                Text(
-                  '${badges.length} / ${_badgeService.getAllBadges().length}',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-          ),
-          if (badges.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.emoji_events_outlined,
-                      size: 48,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Henüz rozet kazanılmadı.\nEtkinliklere katılarak rozetler kazanabilirsiniz!',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 0.8,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: badges.length,
-              itemBuilder: (context, index) {
-                final badge = badges[index];
-                return InkWell(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Row(
-                          children: [
-                            Text(
-                              badge.icon,
-                              style: Theme.of(context).textTheme.headlineSmall,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                badge.name,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ),
-                          ],
-                        ),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              badge.description,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Kategori: ${badge.category}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              'Tamam',
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.1),
-                          Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.2),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.3),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .shadow
-                                    .withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            badge.icon,
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Text(
-                            badge.name,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileSection() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Profil Bilgileri',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.person,
-                color: Theme.of(context).colorScheme.primary),
-            title: Text(_userData?['username'] ?? '',
-                style: Theme.of(context).textTheme.bodyLarge),
-            trailing:
-                Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
-          ),
-          ListTile(
-            leading:
-                Icon(Icons.email, color: Theme.of(context).colorScheme.primary),
-            title: Text(_userData?['email'] ?? '',
-                style: Theme.of(context).textTheme.bodyLarge),
-            trailing:
-                Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
-          ),
-          ListTile(
-            leading:
-                Icon(Icons.phone, color: Theme.of(context).colorScheme.primary),
-            title: Text(_userData?['phone'] ?? '',
-                style: Theme.of(context).textTheme.bodyLarge),
-            trailing:
-                Icon(Icons.edit, color: Theme.of(context).colorScheme.primary),
-          ),
-          const Divider(),
-          ListTile(
-            leading: Icon(Icons.info_outline,
-                color: Theme.of(context).colorScheme.primary),
-            title: Text('Hakkımda',
-                style: Theme.of(context).textTheme.titleMedium),
-            subtitle:
-                Text(_userData?['about'] ?? 'Henüz bir açıklama eklenmemiş'),
-            trailing: IconButton(
-              icon: Icon(Icons.edit,
-                  color: Theme.of(context).colorScheme.primary),
-              onPressed: () => _showEditAboutDialog(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditAboutDialog() {
-    final controller = TextEditingController(text: _userData?['about'] ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hakkımda'),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Kendiniz hakkında bir şeyler yazın...',
-          ),
+  Widget _buildStatsSection(BuildContext context, UserStatsProvider statsProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ProfileSectionHeader(
+          title: 'İstatistikler',
+          icon: Icons.bar_chart,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+        
+        if (statsProvider.userStats != null)
+          UserStatsDisplay(
+            userId: widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? '',
+          )
+        else
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('İstatistik verisi bulunamadı.'),
+            ),
           ),
-          TextButton(
-            onPressed: () async {
-              await _authService.updateUserAbout(controller.text);
-              if (mounted) {
-                Navigator.pop(context);
-                _loadUserData(); // Profili yenile
-              }
-            },
-            child: const Text('Kaydet'),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
-  Widget _buildPastEventsSection() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Katıldığım Etkinlikler',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          if (_pastEvents.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Henüz bir etkinliğe katılmadınız.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _pastEvents.length,
+  Widget _buildBadgesSection(BuildContext context, BadgeProvider badgeProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ProfileSectionHeader(
+          title: 'Rozetler',
+          icon: Icons.stars,
+        ),
+        
+        if (badgeProvider.userBadges.isNotEmpty)
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: badgeProvider.userBadges.length,
               itemBuilder: (context, index) {
-                final event = _pastEvents[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    child: Text(
-                      event.category.substring(0, 1),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  title: Text(event.title,
-                      style: Theme.of(context).textTheme.bodyLarge),
-                  subtitle: Text(
-                    '${event.date.day}/${event.date.month}/${event.date.year} - ${event.location}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  trailing: Icon(
-                    Icons.verified,
-                    color: Theme.of(context).colorScheme.primary,
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: BadgeDisplay(
+                    userId: widget.userId ?? FirebaseAuth.instance.currentUser?.uid ?? '',
                   ),
                 );
               },
             ),
-        ],
-      ),
+          )
+        else
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline),
+                  SizedBox(width: 8),
+                  Text('Henüz rozet kazanılmamış.'),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildSettingsSection() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Ayarlar',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.notifications,
-                color: Theme.of(context).colorScheme.primary),
-            title: Text('Bildirimler',
-                style: Theme.of(context).textTheme.bodyLarge),
-            trailing: Switch(
-              value: true,
-              activeColor: Theme.of(context).colorScheme.primary,
-              onChanged: (value) {
-                // TODO: Bildirim ayarları
-              },
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.dark_mode,
-                color: Theme.of(context).colorScheme.primary),
-            title: Text('Karanlık Mod',
-                style: Theme.of(context).textTheme.bodyLarge),
-            trailing: Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return Switch(
-                  value: themeProvider.isDarkMode,
-                  activeColor: Theme.of(context).colorScheme.primary,
-                  onChanged: (value) {
-                    themeProvider.toggleTheme();
-                  },
-                );
-              },
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.language,
-                color: Theme.of(context).colorScheme.primary),
-            title: Text('Dil', style: Theme.of(context).textTheme.bodyLarge),
-            trailing: Icon(Icons.arrow_forward_ios,
-                color: Theme.of(context).colorScheme.primary),
-            onTap: () {
-              // TODO: Dil seçimi
-            },
-          ),
-          ListTile(
-            leading:
-                Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
-            title: Text(
-              'Çıkış Yap',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-            ),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text(
-                      'Çıkış Yap',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    content: Text(
-                      'Çıkış yapmak üzeresiniz. Çıkmak istediğinize emin misiniz?',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    actions: <Widget>[
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          'İptal',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary),
-                        ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                        ),
-                        onPressed: () {
-                          _authService.signOut();
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Evet',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimary),
-                        ),
-                      ),
-                    ],
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
+  Widget _buildPersonalInfoSection(BuildContext context, User? user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ProfileSectionHeader(
+          title: 'Kişisel Bilgiler',
+          icon: Icons.person,
+        ),
+        
+        ProfileField(
+          label: 'Email',
+          value: user?.email ?? '',
+          icon: Icons.email,
+          isVerified: user?.emailVerified ?? false,
+          onTap: _isCurrentUser ? () => _navigateToEdit() : null,
+        ),
+        
+        const SizedBox(height: 8),
+        
+        ProfileField(
+          label: 'Telefon',
+          value: '', // TODO: Firestore'dan alınacak
+          icon: Icons.phone,
+          isVerified: false,
+          onTap: _isCurrentUser ? () => _navigateToEdit() : null,
+        ),
+      ],
     );
+  }
+
+  Widget _buildSecurityInfoSection(BuildContext context, User? user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ProfileSectionHeader(
+          title: 'Güvenlik',
+          icon: Icons.security,
+        ),
+        
+        ProfileInfoCard(
+          title: 'Son Giriş',
+          subtitle: _formatLastSignIn(user?.metadata.lastSignInTime),
+          icon: Icons.login,
+        ),
+        
+        const SizedBox(height: 8),
+        
+        ProfileInfoCard(
+          title: 'Hesap Güvenliği',
+          subtitle: 'Şifre ve doğrulama ayarları',
+          icon: Icons.shield,
+          onTap: () => _navigateToEdit(),
+        ),
+      ],
+    );
+  }
+
+  String _formatJoinDate(DateTime? date) {
+    if (date == null) return 'Bilinmiyor';
+    
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays > 365) {
+      return '${(difference.inDays / 365).floor()} yıl önce';
+    } else if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()} ay önce';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} gün önce';
+    } else {
+      return 'Bugün';
+    }
+  }
+
+  String _formatLastSignIn(DateTime? date) {
+    if (date == null) return 'Bilinmiyor';
+    
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} gün önce';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} saat önce';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} dakika önce';
+    } else {
+      return 'Şimdi';
+    }
+  }
+
+  void _navigateToEdit() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProfileEditScreen(),
+      ),
+    ).then((_) {
+      // Profil düzenleme ekranından döndükten sonra verileri yenile
+      _loadUserData();
+    });
   }
 }
