@@ -69,24 +69,6 @@ class Event {
   }
 }
 
-class Badge {
-  final String id;
-  final String name;
-  final String description;
-  final String icon;
-  final int requiredEvents;
-  final String category;
-
-  Badge({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.icon,
-    required this.requiredEvents,
-    required this.category,
-  });
-}
-
 class AppUser {
   final String id;
   final String username;
