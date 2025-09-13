@@ -1,30 +1,40 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// This is a basic Flutter widget test for the Linkup app.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 import 'package:linkup_app/main.dart';
+import 'package:linkup_app/theme/theme_provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('Linkup App Tests', () {
+    testWidgets('App starts with login screen', (WidgetTester tester) async {
+      // Build our app and trigger a frame.
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (context) => ThemeProvider(),
+          child: const MyApp(),
+        ),
+      );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      // Verify that the app shows login screen elements
+      expect(find.text('LINK UP'), findsOneWidget);
+      expect(find.text('Giriş Yap'), findsOneWidget);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    testWidgets('Theme provider toggles theme', (WidgetTester tester) async {
+      final themeProvider = ThemeProvider();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      // Test initial state
+      expect(themeProvider.isDarkMode, false);
+
+      // Toggle theme
+      themeProvider.toggleTheme();
+      expect(themeProvider.isDarkMode, true);
+
+      // Toggle back
+      themeProvider.toggleTheme();
+      expect(themeProvider.isDarkMode, false);
+    });
   });
 }
