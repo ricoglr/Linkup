@@ -26,25 +26,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _loadUserData() {
-    try {
-      final profileProvider = context.read<ProfileUpdateProvider>();
-      final badgeProvider = context.read<BadgeProvider>();
-      final statsProvider = context.read<UserStatsProvider>();
-
-      if (widget.userId != null) {
-        // Başka kullanıcının profilini yükle
-        badgeProvider.loadUserBadges(widget.userId!);
-        statsProvider.loadUserStats(widget.userId!);
-      } else {
-        // Mevcut kullanıcının profilini yükle
-        final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-        if (currentUserId != null) {
-          badgeProvider.loadUserBadges(currentUserId);
-          statsProvider.loadUserStats(currentUserId);
-        }
-      }
-    } catch (e) {
-      print('Error loading user data: $e');
+    // Profil verilerini yeniden yükle
+    final badgeProvider = context.read<BadgeProvider>();
+    final statsProvider = context.read<UserStatsProvider>();
+    
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      badgeProvider.loadUserBadges(user.uid);
+      statsProvider.loadUserStats(user.uid);
     }
   }
 
@@ -293,6 +282,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           subtitle: 'Şifre ve doğrulama ayarları',
           icon: Icons.shield,
           onTap: () => _navigateToEdit(),
+        ),
+        
+        const SizedBox(height: 8),
+        
+        ProfileInfoCard(
+          title: 'Bildirim Ayarları',
+          subtitle: 'Push notification tercihleri',
+          icon: Icons.notifications,
+          onTap: () => Navigator.pushNamed(context, '/notification-settings'),
         ),
       ],
     );

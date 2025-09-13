@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         labelText: 'Şifre',
                         hintText: '••••••••',
                         controller: TextEditingController(text: _password),
-                        obsureText: true,
+                        obscureText: true,
                         validator: (value) => value!.length < 6
                             ? 'Şifre en az 6 karakter olmalı'
                             : null,

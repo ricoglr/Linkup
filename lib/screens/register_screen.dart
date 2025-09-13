@@ -111,7 +111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Kullanıcı Adı',
                       hintText: 'Kullanıcı adınızı girin',
                       controller: _usernameController,
-                      icon: Icons.person,
+                      prefixIcon: Icons.person,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Kullanıcı adı gerekli';
@@ -126,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Email',
                       hintText: 'mail@example.com',
                       controller: _emailController,
-                      icon: Icons.email,
+                      prefixIcon: Icons.email,
                       validator: _handleEmail,
                     ),
                     const SizedBox(height: 16),
@@ -136,7 +136,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Telefon',
                       hintText: '5XX XXX XX XX',
                       controller: _phoneController,
-                      icon: Icons.phone,
+                      prefixIcon: Icons.phone,
                       keyboardType: TextInputType.phone,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -153,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hintText: '••••••••',
                       controller: _passwordController,
                       validator: _handlePassword,
-                      obsureText: !_isPasswordVisible,
+                      obscureText: !_isPasswordVisible,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isPasswordVisible
@@ -176,7 +176,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hintText: '••••••••',
                       controller: _confirmPasswordController,
                       validator: _handleConfirmPassword,
-                      obsureText: !_isConfirmPasswordVisible,
+                      obscureText: !_isConfirmPasswordVisible,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isConfirmPasswordVisible

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../screens/add_event_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/notifications_screen.dart';
+import '../providers/notification_provider.dart';
+import '../widgets/notification_widgets.dart';
 
 class BottomNavBar extends StatefulWidget {
   const BottomNavBar({super.key});
@@ -23,6 +27,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     // initState içinde _pages'i başlatalım
     _pages = [
       const HomeScreen(),
+      const NotificationsScreen(),
       const ProfileScreen(),
     ];
   }
@@ -75,29 +80,38 @@ class _BottomNavBarState extends State<BottomNavBar> {
         color: barColor,
         height: 65, // Yüksekliği biraz artırdık
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 40),
-              child: IconButton(
-                icon: const Icon(Icons.home),
-                color: _selectedIndex == 0
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                onPressed: () => _onItemTapped(0),
-                iconSize: 32, // İkon boyutunu biraz artırdık
-              ),
+            IconButton(
+              icon: const Icon(Icons.home),
+              color: _selectedIndex == 0
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              onPressed: () => _onItemTapped(0),
+              iconSize: 32,
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 40),
-              child: IconButton(
-                icon: const Icon(Icons.person),
-                color: _selectedIndex == 1
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                onPressed: () => _onItemTapped(1),
-                iconSize: 32, // İkon boyutunu biraz artırdık
-              ),
+            Consumer<NotificationProvider>(
+              builder: (context, provider, _) {
+                return NotificationBadge(
+                  child: IconButton(
+                    icon: const Icon(Icons.notifications),
+                    color: _selectedIndex == 1
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    onPressed: () => _onItemTapped(1),
+                    iconSize: 32,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 20), // FAB için boşluk
+            IconButton(
+              icon: const Icon(Icons.person),
+              color: _selectedIndex == 2
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              onPressed: () => _onItemTapped(2),
+              iconSize: 32,
             ),
           ],
         ),
