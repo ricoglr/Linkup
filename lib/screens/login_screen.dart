@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/custom_textfield.dart';
+import '../widgets/social_login_buttons.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
@@ -282,25 +283,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 30),
                       // Sosyal medya giriş butonları
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _socialButton(
-                              icon: Icons.g_mobiledata_rounded,
-                              label: 'Google',
-                              onTap: () {},
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: _socialButton(
-                              icon: Icons.facebook,
-                              label: 'Facebook',
-                              onTap: () {},
-                            ),
-                          ),
-                        ],
-                      ),
+                      if (_isLogin) ...[
+                        SocialLoginButtons(
+                          onLoginSuccess: () {
+                            Navigator.pushReplacementNamed(context, '/home');
+                          },
+                          onLoginError: (error) {
+                            setState(() {
+                              _error = error;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(error),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                       const SizedBox(height: 60),
                       // Kayıt Ol Linki
                       Row(
@@ -346,53 +346,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Sosyal medya giriş butonu widget'ı
-  Widget _socialButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
-            width: 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 24,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w500,
-                    ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
