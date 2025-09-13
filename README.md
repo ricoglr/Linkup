@@ -1,11 +1,25 @@
 # Linkup  
 **Bağlan. Bir Araya Gel. Güçlen.**
 
+[![Flutter](https://img.shields.io/badge/Flutter-3.27.3-blue.svg)](https://flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-3.6.1-blue.svg)](https://dart.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-enabled-orange.svg)](https://firebase.google.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 <details open>
 <summary>🇹🇷 Türkçe</summary>
 
 ## 🌍 Proje Hakkında  
 Linkup, aktivistleri, gönüllüleri ve insan hakları konusunda duyarlı bireyleri etkinlikler aracılığıyla bir araya getiren bir **mobil uygulama**dır. İster bir konferans, ister protesto, isterse bir bağış kampanyası olsun, Linkup ile bu etkinlikleri keşfetmek, katılmak ve katkıda bulunmak çok kolay!  
+
+---
+
+## 🏗️ Teknik Özellikler
+- **Framework**: Flutter 3.27.3
+- **Backend**: Firebase (Auth, Firestore, Storage)
+- **State Management**: Provider
+- **Platforms**: Android, iOS, Web
+- **Architecture**: MVVM Pattern
 
 ---
 
@@ -15,6 +29,8 @@ Linkup, aktivistleri, gönüllüleri ve insan hakları konusunda duyarlı bireyl
 - 🏅 **Katılım ve Rozetler**: Etkinliklere katılarak aktivist rozetleri kazanın.  
 - 📣 **Etkinlik Paylaşımı**: Kendi etkinliklerinizi oluşturun ve topluluğunuzla paylaşın.  
 - 🔔 **Bildirimler**: Etkinlik hatırlatmaları ve güncellemeler alın.  
+- 🌙 **Karanlık Mod**: Hem açık hem koyu tema desteği
+- 🔍 **Arama**: Kullanıcı ve etkinlik arama özelliği
 
 ---
 
