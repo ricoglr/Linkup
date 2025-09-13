@@ -27,7 +27,6 @@ class _AddEventScreenState extends State<AddEventScreen> {
   String? _eventType;
   String? _description;
   DateTime? _startDate;
-  DateTime? _endDate;
   String? _location;
   String? _contactPhone;
   String? _organizationInfo;
@@ -82,8 +81,6 @@ class _AddEventScreenState extends State<AddEventScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final barColor = Theme.of(context).colorScheme.primary.withOpacity(0.2);
 
     return Scaffold(
